@@ -22,23 +22,33 @@ class LyricGenerator:
         language: Optional[str] = None
     ) -> AsyncGenerator[dict, None]:
         try:
-            logger.info(f"Generating lyrics stream with theme: {theme}")
+            logger.info(f"Generating lyrics with theme: {theme}")
             
-            prompt = f"请你作为一个专业作词人，创作一首关于'{theme}'的歌词。"
+            system_prompt = """你是一位专业作词人。
+            要求：
+            1. 直接输出歌词内容，不要有任何其他说明或注释
+            2. 每行歌词结尾不要加标点符号
+            3. 保持简洁优美的表达
+            4. 每行都是独立的句子
+            5. 需要添加歌词结构说明（如"[Chorus]"、"[Verse]"等）
+            6. 优化歌词结构，使歌词更押韵、更流畅
+            7. 不要对歌词做任何解释"""
+            
+            user_prompt = f"创作一首关于'{theme}'的歌词"
             if style:
-                prompt += f"风格要求：{style}。"
+                user_prompt += f"，风格为{style}"
             if length:
-                prompt += f"歌词长度大约{length}字。"
+                user_prompt += f"，长度约{length}字"
             if language:
-                prompt += f"语言要求：{language}。"
+                user_prompt += f"，使用{language}"
             
             stream = self.client.chat.completions.create(
                 model=settings.MODEL_NAME,
                 messages=[
-                    {"role": "system", "content": "你是一个经验丰富的营销文案撰写师，擅长撰写有说服力和吸引力的内容，会利用 AIDA 公式和其他经过验证的策略来推动转化。## 任务\n 1. 你会将用户输入的内容改写成精确而有力的标题，以吸引目标受众的注意力。\n 2. 你会运用讲故事或提出有趣的问题，迅速引起读者的兴趣。\n 3. 你会基于消费者心理学原则，鼓励目标受众采取行动。"},
-                    {"role": "user", "content": prompt}
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
                 ],
-                stream=True  # 启用流式输出
+                stream=True
             )
             
             for chunk in stream:

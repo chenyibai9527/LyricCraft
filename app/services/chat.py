@@ -89,3 +89,46 @@ class ChatService:
                 "error": f"聊天过程发生错误: {str(e)}",
                 "suggestions": []
             }
+
+    async def predict_completion(
+        self,
+        input_text: str,
+        context_messages: List[ChatMessage] = None
+    ) -> Optional[str]:
+        """预测用户输入的完整内容"""
+        try:
+            if not input_text or len(input_text.strip()) < 2:
+                return None
+
+            messages = [
+                ChatMessage(
+                    role="system",
+                    content="你是一个智能助手，需要基于用户当前的输入预测他们可能想要问的完整问题。直接返回预测的完整问题，不要有任何解释或额外内容。"
+                ),
+                ChatMessage(
+                    role="user",
+                    content=f"基于这个输入预测完整的问题：{input_text}"
+                )
+            ]
+
+            if context_messages:
+                messages = [*context_messages[-2:], *messages]
+
+            response = self.client.chat.completions.create(
+                model=settings.MODEL_NAME,
+                messages=[{"role": msg.role, "content": msg.content} for msg in messages],
+                max_tokens=50,
+                temperature=0.3,
+                stream=False
+            )
+
+            prediction = response.choices[0].message.content.strip()
+            
+            if not prediction.startswith(input_text):
+                prediction = input_text + prediction.lstrip(input_text)
+                
+            return prediction
+
+        except Exception as e:
+            logger.error(f"Error in predict_completion: {str(e)}")
+            return None

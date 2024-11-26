@@ -32,3 +32,11 @@ class ChatStreamResponse(BaseModel):
     content: str
     done: bool = False
     error: Optional[str] = None
+
+# 添加预测相关的模型
+class PredictRequest(BaseModel):
+    input: str = Field(..., description="用户当前输入的内容")
+    messages: List[ChatMessage] = Field(default_list=[], description="对话历史")
+
+class PredictResponse(BaseModel):
+    prediction: Optional[str] = Field(None, description="预测的完整内容")

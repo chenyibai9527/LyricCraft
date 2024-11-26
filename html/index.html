@@ -189,6 +189,96 @@
         .lyrics-content:not(:empty) {
             animation: fadeInLyrics 0.5s ease-out;
         }
+
+        /* 添加到已有的样式表中 */
+        #chat-input {
+            background-color: transparent;
+        }
+
+        #prediction-display {
+            font-family: inherit;
+            font-size: inherit;
+            line-height: inherit;
+            color: #9CA3AF;  /* 使用更淡的颜色 */
+        }
+
+        /* 确保输入框容器正确定位 */
+        .relative {
+            position: relative;
+        }
+
+        /* 优化输入框和预测显示的对齐 */
+        #chat-input, #prediction-display {
+            font-family: inherit;
+            font-size: inherit;
+            line-height: inherit;
+        }
+
+        /* 优化输入框和预测显示的样式 */
+        .input-container {
+            position: relative;
+            flex: 1;
+        }
+
+        #chat-input {
+            width: 100%;
+            background: transparent;
+            position: relative;
+            z-index: 2;
+        }
+
+        #prediction-display {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            color: #9CA3AF;
+            opacity: 0.6;
+            padding: 0;
+            white-space: pre;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* 预测文本样式 */
+        .prediction-text {
+            color: #9CA3AF;
+            opacity: 0.8;
+        }
+
+        /* Tab 提示样式 */
+        .tab-hint {
+            font-size: 12px;
+            padding: 2px 4px;
+            background-color: #F3F4F6;
+            color: #6B7280;
+            border-radius: 4px;
+            border: 1px solid #E5E7EB;
+            line-height: 1;
+            opacity: 0.8;
+            margin-left: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 24px;
+            height: 18px;
+        }
+
+        /* 输入框容器样式 */
+        .input-container {
+            position: relative;
+            flex: 1;
+        }
+
+        /* 确保输入框和预测显示的字体一致 */
+        #chat-input, #prediction-display {
+            font-family: inherit;
+            font-size: inherit;
+            line-height: inherit;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -224,21 +314,26 @@
                     <!-- 消息将在这里动态添加 -->
                 </div>
                 
-                <div class="flex space-x-4">
-                    <textarea 
-                        id="chat-input" 
-                        class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                        rows="3"
-                        placeholder="请输入您的问题..."
-                        onkeydown="if(event.keyCode===13 && !event.shiftKey){event.preventDefault();sendChatMessage()}"
-                    ></textarea>
-                    <button 
-                        onclick="sendChatMessage()" 
-                        id="chat-send-btn"
-                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 h-fit"
-                    >
-                        发送
-                    </button>
+                <div class="relative mt-4">
+                    <div class="flex space-x-2">
+                        <div class="input-container">
+                            <input 
+                                type="text" 
+                                id="chat-input"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="输入您的问题..."
+                                autocomplete="off"
+                            >
+                            <div id="prediction-display" class="p-3"></div>
+                        </div>
+                        <button 
+                            onclick="sendChatMessage()" 
+                            id="chat-send-btn"
+                            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400"
+                        >
+                            发送
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -338,7 +433,7 @@
                 bubble.textContent = content;
             } else {
                 bubble.innerHTML = marked.parse(content);
-                // 高亮代码块
+                // 亮代码块
                 bubble.querySelectorAll('pre code').forEach((block) => {
                     hljs.highlightBlock(block);
                 });
@@ -363,7 +458,7 @@
             }
         }
 
-        // 修改建议按钮的渲染函数
+        // 修改建议按钮的渲染数
         function renderSuggestions(suggestions, parentElement) {
             if (!suggestions || !suggestions.length) return;
             
@@ -398,16 +493,19 @@
         async function sendChatMessage(directMessage = null) {
             const input = document.getElementById('chat-input');
             const sendBtn = document.getElementById('chat-send-btn');
+            const predictionDisplay = document.getElementById('prediction-display');
             
-            // 获取消息内容，优先使用直接传入的消息
+            // 获取消息内容
             const userMessage = directMessage || input.value.trim();
             if (!userMessage) return;
             
-            // 如果是从输入框发送，则清空输入框
+            // 清空输入框和预测内容
             if (!directMessage) {
                 input.value = '';
+                predictionDisplay.textContent = '';
+                currentPrediction = '';
             }
-
+            
             // 先将用户消息添加到历史记录
             messageHistory.push({ role: 'user', content: userMessage });
             
@@ -582,7 +680,7 @@
             }
         }
 
-        // 初始化显示聊天界面
+        // 初始显示聊天界面
         switchTab('chat');
 
         // 配置 marked
@@ -595,6 +693,148 @@
             },
             breaks: true,
             gfm: true
+        });
+
+        // 修改输入预测相关函数
+        let currentPrediction = '';
+        let isProcessingPrediction = false;
+
+        async function getPrediction(input) {
+            try {
+                const response = await fetch('http://localhost:8000/api/v1/chat/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        input: input,
+                        messages: messageHistory
+                    })
+                });
+                
+                const data = await response.json();
+                return data.prediction || '';
+            } catch (error) {
+                console.error('预测出错:', error);
+                return '';
+            }
+        }
+
+        // 防抖函数
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // 修改输入预测处理函数
+        const handleInputPrediction = debounce(async (input) => {
+            const predictionDisplay = document.getElementById('prediction-display');
+            
+            // 清除当前预测
+            predictionDisplay.innerHTML = '';
+            currentPrediction = '';
+            
+            if (input.length < 2 || isProcessingPrediction) {
+                return;
+            }
+            
+            isProcessingPrediction = true;
+            try {
+                const prediction = await getPrediction(input);
+                if (prediction && prediction.length > input.length) {
+                    const predictedPart = prediction.slice(input.length);
+                    if (predictedPart.trim()) {
+                        currentPrediction = prediction;
+                        predictionDisplay.innerHTML = `
+                            <span class="prediction-text">${predictedPart}</span>
+                            <span class="tab-hint">Tab</span>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('预测错误:', error);
+            } finally {
+                isProcessingPrediction = false;
+            }
+        }, 200);
+
+        // 修改输入框和预测显示的样式
+        function initInputPrediction() {
+            const input = document.getElementById('chat-input');
+            const predictionDisplay = document.getElementById('prediction-display');
+            
+            // 添加回车发送功能
+            input.addEventListener('keydown', async (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (input.value.trim()) {
+                        await sendChatMessage();
+                    }
+                } else if (e.key === 'Tab' && currentPrediction) {
+                    e.preventDefault();
+                    input.value = currentPrediction;
+                    predictionDisplay.textContent = '';
+                    currentPrediction = '';
+                }
+            });
+            
+            input.addEventListener('input', (e) => {
+                const inputValue = e.target.value;
+                // 立即清除预测显示
+                predictionDisplay.textContent = '';
+                // 延迟获取新的预测
+                handleInputPrediction(inputValue);
+            });
+            
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Tab' && currentPrediction) {
+                    e.preventDefault();
+                    input.value = currentPrediction;
+                    predictionDisplay.textContent = '';
+                    currentPrediction = '';
+                }
+            });
+            
+            // 优化预测显示位置
+            const updatePredictionPosition = () => {
+                const inputStyle = window.getComputedStyle(input);
+                const inputPadding = parseFloat(inputStyle.paddingLeft);
+                const inputWidth = input.offsetWidth;
+                const inputRect = input.getBoundingClientRect();
+                const textWidth = getTextWidth(input.value, inputStyle.font);
+                
+                predictionDisplay.style.left = `${inputPadding + textWidth}px`;
+                predictionDisplay.style.width = `${inputWidth - textWidth - inputPadding * 2}px`;
+            };
+            
+            // 添加文本宽度计算函数
+            function getTextWidth(text, font) {
+                const canvas = getTextWidth.canvas || (getTextWidth.canvas = document.createElement('canvas'));
+                const context = canvas.getContext('2d');
+                context.font = font;
+                return context.measureText(text).width;
+            }
+            
+            // 监听输入变化时更新位置
+            input.addEventListener('input', updatePredictionPosition);
+            window.addEventListener('resize', updatePredictionPosition);
+            
+            // 失去焦点时隐藏预测
+            input.addEventListener('blur', () => {
+                setTimeout(() => {
+                    predictionDisplay.textContent = '';
+                }, 200);
+            });
+        }
+
+        // 在页面加载时初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            initInputPrediction();
         });
     </script>
 </body>
