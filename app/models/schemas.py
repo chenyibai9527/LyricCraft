@@ -40,3 +40,7 @@ class PredictRequest(BaseModel):
 
 class PredictResponse(BaseModel):
     prediction: Optional[str] = Field(None, description="预测的完整内容")
+
+# 在文件中添加这个新的模型
+class SimpleLyricRequest(BaseModel):
+    prompt: str = "生成一首优美的歌词"
